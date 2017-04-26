@@ -1,0 +1,77 @@
+# === All Package Structure ===
+# | Data Length (16 bytes) | JSON | 
+# === JSON Package ===
+# *** Common Server Return ***
+# the data is JSON encoded;
+# Common status code:
+# SUCCESS - the operation is done;
+# FAILED - common error;
+# INVALID_VERSION - invalid protocol version(currently 0.0.7);
+{
+"protocol_version":"0.0.7"
+    ,
+"status":""
+    ,
+"code":""
+    ,
+"message":""
+    ,
+"data":""
+}
+
+# ** Server status info **
+# Client Request:
+{
+"protocol_version":"0.0.7"
+    ,
+"token":""
+    ,
+"type":"status"
+    ,
+"keep-connection":"true/false"
+}
+# Server Return Data:
+{
+"server_version":""
+,"server_build":""
+,"clients":""
+,"max_clients":""
+    , "queried"
+:""
+,"success_queried":""
+,"failed_queried":""
+}
+
+# ** Normal query **
+# Client Request:
+# NULL sql and TRUE keep-connection is a heart break package;
+# Token (retrieved by when auth successed) is required;
+{
+"protocol_version":"0.0.7"
+    ,
+"token":""
+    ,
+"type":"query"
+    ,
+"username":""
+    ,
+"password":""
+    ,
+"sql":""
+}
+# Server Return Data:
+# Null if no result;
+# QUERY_FAIL - Error message returned by DB will be stored in message field;
+# QUERY_SUCCESS - return JSON encoded array;
+# ** Normal End, close the connection **
+# Client Request:
+# Token (retrieved by when auth successed) is required;
+{
+"protocol_version":"0.0.7"
+    ,
+"token":""
+    ,
+"type":"close"
+    ,
+"token":""
+}
