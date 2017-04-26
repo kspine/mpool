@@ -14,3 +14,6 @@ $make
 ## Running
 $cd /opt/mpool/bin  
 $./mpool -h  
+
+# Clients
+[PHP Client Sample](https://github.com/leyley/mpool/wiki/PHP-Client-Sample)
