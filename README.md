@@ -1,5 +1,7 @@
 # mpool
 MySQL Connection Pool Proxy
+## Required Dependencies
+[jsoncpp](https://github.com/open-source-parsers/jsoncpp)  
 ## Installation
 **Recommended Install Directory: /opt/mpool**   
 $mkdir build  
