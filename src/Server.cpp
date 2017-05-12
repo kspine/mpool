@@ -135,8 +135,8 @@ void Server::socketMessage(int s, const char *status, const char *code,
 	}
 }
 
-void Server::clientMessage(Client *client, const char *status,
-		const char *code, const char *msg, const char *data) {
+void Server::clientMessage(Client *client, const char *status, const char *code,
+		const char *msg, const char *data) {
 	if (!client) {
 		return;
 	}
@@ -195,7 +195,8 @@ void Server::reload() {
 #endif
 	if (!this->db_pool->start(this->config["mysql_host"],
 			this->config["mysql_user"], this->config["mysql_pass"],
-			this->config["mysql_db"], atoi(this->config["mysql_port"].c_str()))) {
+			this->config["mysql_db"],
+			atoi(this->config["mysql_port"].c_str()))) {
 		this->doCleanWorks();
 		throw ServerException(ServerException::DB_CONNECTION_FAIL);
 	}
@@ -226,9 +227,9 @@ void Server::readConfigFile(const char *config_file) {
 	}
 	std::stringstream ss;
 	ss << this->max_connections;
-	this->config["max_connections"]
-			= root.isMember("max_connections") ? root["max_connections"].asString()
-					: ss.str();
+	this->config["max_connections"] =
+			root.isMember("max_connections") ?
+					root["max_connections"].asString() : ss.str();
 	this->max_connections = atol(this->config["max_connections"].c_str());
 	if (!root.isMember("mysql") || !root["mysql"].isObject()) {
 #ifdef DEBUG
@@ -238,34 +239,34 @@ void Server::readConfigFile(const char *config_file) {
 		throw ServerException(ServerException::PARSE_CONFIG_FILE_FAIL);
 	}
 	Json::Value mysql_json = root["mysql"];
-	this->config["mysql_host"]
-			= mysql_json.isMember("host") ? mysql_json["host"].asString()
-					: "localhost";
-	this->config["mysql_user"]
-			= mysql_json.isMember("user") ? mysql_json["user"].asString()
-					: "root";
-	this->config["mysql_pass"]
-			= mysql_json.isMember("pass") ? mysql_json["pass"].asString() : "";
-	this->config["mysql_db"]
-			= mysql_json.isMember("db") ? mysql_json["db"].asString() : "mysql";
-	this->config["mysql_port"]
-			= mysql_json.isMember("port") ? mysql_json["port"].asString()
-					: "3306";
+	this->config["mysql_host"] =
+			mysql_json.isMember("host") ?
+					mysql_json["host"].asString() : "localhost";
+	this->config["mysql_user"] =
+			mysql_json.isMember("user") ?
+					mysql_json["user"].asString() : "root";
+	this->config["mysql_pass"] =
+			mysql_json.isMember("pass") ? mysql_json["pass"].asString() : "";
+	this->config["mysql_db"] =
+			mysql_json.isMember("db") ? mysql_json["db"].asString() : "mysql";
+	this->config["mysql_port"] =
+			mysql_json.isMember("port") ?
+					mysql_json["port"].asString() : "3306";
 	ss.str("");
 	ss << this->port;
-	this->config["port"] = root.isMember("port") ? root["port"].asString()
-			: ss.str();
+	this->config["port"] =
+			root.isMember("port") ? root["port"].asString() : ss.str();
 	this->port = atol(this->config["port"].c_str());
 	ss.str("");
 	ss << this->workers;
-	this->config["workers"]
-			= root.isMember("workers") ? root["workers"].asString() : ss.str();
+	this->config["workers"] =
+			root.isMember("workers") ? root["workers"].asString() : ss.str();
 	this->workers = atoi(this->config["workers"].c_str());
 	ss.str("");
 	ss << this->pool_size;
-	this->config["pool_size"]
-			= mysql_json.isMember("pool_size") ? mysql_json["pool_size"].asString()
-					: ss.str();
+	this->config["pool_size"] =
+			mysql_json.isMember("pool_size") ?
+					mysql_json["pool_size"].asString() : ss.str();
 	this->pool_size = atoi(this->config["pool_size"].c_str());
 	fs.close();
 
@@ -427,12 +428,17 @@ void Server::run() {
 					std::cout<<"(Server)New connection is established, FD:"<<new_socket<<std::endl;
 #endif
 					memset(&ev, '\0', sizeof(struct epoll_event));
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,17)
 					ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+#else
+					ev.events = EPOLLIN | EPOLLET;
+#endif
 					ev.data.fd = new_socket;
-					if (-1 == epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD,
-							new_socket, &ev)) {
+					if (-1
+							== epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD,
+									new_socket, &ev)) {
 						std::cout << "(Server)epoll add error:" << strerror(
-								errno) << std::endl;
+						errno) << std::endl;
 					}
 				}
 			} else {
@@ -454,8 +460,8 @@ void Server::run() {
 #endif
 				bool normal_end = false;
 				bool error_end = false;
-				if ((events[n].events & EPOLLERR) && !(events[n].events
-						& EPOLLIN)) {
+				if ((events[n].events & EPOLLERR)
+						&& !(events[n].events & EPOLLIN)) {
 					std::cout << "(Server)epoll wait event error, FD:"
 							<< events[n].data.fd << ", Error:" << strerror(
 							errno) << std::endl;
@@ -475,8 +481,8 @@ void Server::run() {
 					continue;
 				}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,17)
-				if ((events[n].events & EPOLLRDHUP) && !(events[n].events
-						& EPOLLIN)) {
+				if ((events[n].events & EPOLLRDHUP)
+						&& !(events[n].events & EPOLLIN)) {
 					// Connection closed by client;
 #ifdef DEBUG
 					std::cout<<"(Server)Connection closed by client: "<<events[n].data.fd<<std::endl;
@@ -508,9 +514,11 @@ void Server::run() {
 						case 0:
 							// Connection closed by client;
 							normal_end = true;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,17)
 							if (events[n].events & EPOLLRDHUP) {
 								client_close = true;
 							}
+#endif
 							break;
 						case -1:
 							if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
@@ -566,8 +574,8 @@ void Server::run() {
 					const std::string len_str = buffer.substr(0, 16);
 					ssize_t jsonLength = atol(len_str.c_str());
 					std::string jsonBuffer = buffer.substr(16);
-					if (!jsonLength || (ssize_t) jsonBuffer.size()
-							!= jsonLength) {
+					if (!jsonLength
+							|| (ssize_t) jsonBuffer.size() != jsonLength) {
 						// Wrong package length;
 #ifdef DEBUG
 						std::cout<<"(Server)Package length is not matched with buffer, FD:"<<events[n].data.fd<<std::endl;
@@ -582,7 +590,8 @@ void Server::run() {
 						continue;
 					}
 					// Right trim;
-					jsonBuffer.erase(jsonBuffer.find_last_not_of(" \n\r\t") + 1);
+					jsonBuffer.erase(
+							jsonBuffer.find_last_not_of(" \n\r\t") + 1);
 #ifdef DEBUG
 					std::cout<<"(Server)JSON:"<<jsonBuffer<<std::endl;
 #endif
@@ -612,8 +621,8 @@ void Server::run() {
 					bool parsed = this->jsonReader->parse(jsonBuffer, root,
 							false);
 
-					if (!parsed || !root.isMember("type") || !root.isMember(
-							"protocol_version")) {
+					if (!parsed || !root.isMember("type")
+							|| !root.isMember("protocol_version")) {
 #ifdef DEBUG
 						std::cout<<"(Server)Fail to parse JSON, Wrong data, drop it"<<std::endl;
 #endif
@@ -628,7 +637,7 @@ void Server::run() {
 						continue;
 					}
 					if (root["protocol_version"].asString().compare(
-							MPOOL_PROTOCOL_VERSION)) {
+					MPOOL_PROTOCOL_VERSION)) {
 #ifdef DEBUG
 						std::cout<<"(Server)Wrong protocol, drop it"<<std::endl;
 #endif
@@ -700,8 +709,8 @@ void Server::run() {
 							if (!client) {
 								this->closeSocket(events[n].data.fd);
 							} else {
-								if (!client->isBusy() && client->getWorks()
-										<= 0) {
+								if (!client->isBusy()
+										&& client->getWorks() <= 0) {
 									this->normalEnd(client);
 								}
 							}
@@ -751,7 +760,8 @@ void Server::startGc() {
 		}
 		this->gc_tid = 0;
 	}
-	if (pthread_create(&this->gc_tid, 0, MPool::Server::threadStart, this) != 0) {
+	if (pthread_create(&this->gc_tid, 0, MPool::Server::threadStart, this)
+			!= 0) {
 		throw ServerException();
 	}
 	pthread_detach(this->gc_tid);
@@ -776,8 +786,8 @@ void Server::gc() {
 			std::cout<<"Is busy? "<<client->isBusy()<<std::endl;
 			std::cout<<"Pending works: "<<client->getWorks()<<std::endl;
 #endif
-			if (client->isTimeout() && !client->isBusy() && client->getWorks()
-					<= 0) {
+			if (client->isTimeout() && !client->isBusy()
+					&& client->getWorks() <= 0) {
 				pthread_mutex_lock(&this->client_mutex);
 #ifdef DEBUG
 				std::cout<<"(Server)Garbage collection for client:"<<client->getSocket()<<std::endl;
@@ -867,7 +877,7 @@ bool Server::clientServerStatusAction(Client *client, Json::Value root) {
 	}
 	Json::Value data;
 	data["server_version"] = MPOOL_SERVER_VERSION;
-	data["clients"] = this->clients->size();
+	data["clients"] = (unsigned int) this->clients->size();
 	data["workers"] = this->workers;
 	std::string str_data = this->jsonWriter->write(data);
 	this->clientMessage(client, "SUCCESS", "T001", "Success", str_data.c_str());
